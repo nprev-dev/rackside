@@ -58,7 +58,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     env:
       VERSION: ${{ needs.build.outputs.version }}
-      RACK_DASHBOARD_REPO: http://127.0.0.1:8900
+      RACKSIDE_REPO: http://127.0.0.1:8900
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -73,29 +73,29 @@ jobs:
       - name: The readme's command, then the installer from the repository, which hands over
         if: runner.os != 'Windows'
         run: |
-          curl -fsSL "$RACK_DASHBOARD_REPO/releases/latest/download/install.sh" | sh -s -- --no-service
-          test "$(~/rack-dashboard/bin/rack-dashboard --version)" = "rack-dashboard $VERSION"
+          curl -fsSL "$RACKSIDE_REPO/releases/latest/download/install.sh" | sh -s -- --no-service
+          test "$(~/rackside/bin/rackside --version)" = "rackside $VERSION"
           sh install.sh --no-service | tee again.txt
-          grep -q "Installing rack-dashboard $VERSION" again.txt
+          grep -q "Installing rackside $VERSION" again.txt
           sh install.sh --version "$VERSION" --no-service
           if sh install.sh --version 9.9.9 --no-service 2> unknown.txt; then echo "an unknown release was accepted"; exit 1; fi
           grep -q "could not download the installer of release 9.9.9" unknown.txt
-          sh ~/rack-dashboard/uninstall.sh
-          test ! -e ~/rack-dashboard
+          sh ~/rackside/uninstall.sh
+          test ! -e ~/rackside
       - name: The readme's command, then the installer from the repository, which hands over
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          & ([scriptblock]::Create((irm "$env:RACK_DASHBOARD_REPO/releases/latest/download/install.ps1"))) -NoStartup
-          $said = & "$HOME\rack-dashboard\bin\rack-dashboard.exe" --version
-          if ($said -ne "rack-dashboard $env:VERSION") { throw "installed: $said" }
+          & ([scriptblock]::Create((irm "$env:RACKSIDE_REPO/releases/latest/download/install.ps1"))) -NoStartup
+          $said = & "$HOME\rackside\bin\rackside.exe" --version
+          if ($said -ne "rackside $env:VERSION") { throw "installed: $said" }
           & ([scriptblock]::Create((Get-Content -Raw ./install.ps1))) -NoStartup
           & ([scriptblock]::Create((Get-Content -Raw ./install.ps1))) -Version $env:VERSION -NoStartup
           $refused = $false
           try { & ([scriptblock]::Create((Get-Content -Raw ./install.ps1))) -Version 9.9.9 -NoStartup } catch { $refused = $_.Exception.Message -like "*could not download the installer of release 9.9.9*" }
           if (-not $refused) { throw "an unknown release was accepted" }
           & ([scriptblock]::Create((Get-Content -Raw ./install.ps1))) -Uninstall
-          if (Test-Path "$HOME\rack-dashboard") { throw "the folder is still there" }
+          if (Test-Path "$HOME\rackside") { throw "the folder is still there" }
       - name: What the stand-in was asked for
         if: always()
         shell: bash
@@ -116,7 +116,7 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
-        run: gh release create "v$VERSION" dist/* --verify-tag --title "Rack Dashboard $VERSION" --notes-file dist-notes.md
+        run: gh release create "v$VERSION" dist/* --verify-tag --title "Rackside $VERSION" --notes-file dist-notes.md
 
   verify:
     name: install the published release, ${{ matrix.os }}
@@ -133,13 +133,13 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/install.sh | sh -s -- --no-service
-          test "$(~/rack-dashboard/bin/rack-dashboard --version)" = "rack-dashboard $VERSION"
-          sh ~/rack-dashboard/uninstall.sh
+          test "$(~/rackside/bin/rackside --version)" = "rackside $VERSION"
+          sh ~/rackside/uninstall.sh
       - name: Exactly as the readme says
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/latest/download/install.ps1))) -NoStartup
-          $said = & "$HOME\rack-dashboard\bin\rack-dashboard.exe" --version
-          if ($said -ne "rack-dashboard $env:VERSION") { throw "installed: $said" }
+          $said = & "$HOME\rackside\bin\rackside.exe" --version
+          if ($said -ne "rackside $env:VERSION") { throw "installed: $said" }
           & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/latest/download/install.ps1))) -Uninstall

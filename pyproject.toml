@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "rack-dashboard"
+name = "rackside"
 dynamic = ["version"]
 description = "A one-page status screen for a home server: containers, network, power and hardware."
 readme = "readme.md"
@@ -32,14 +32,14 @@ dependencies = [
 dev = ["pytest>=8", "psutil>=5.9"]
 
 [project.scripts]
-rack-dashboard = "rack_dashboard.cli:main"
+rackside = "rack_dashboard.cli:main"
 
 # The same thing without a console window, for Windows to start at sign-in.
 [project.gui-scripts]
-rack-dashboardw = "rack_dashboard.cli:main"
+racksidew = "rack_dashboard.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/nprev-dev/Docker-UI-app"
+Homepage = "https://github.com/nprev-dev/rackside"
 
 [tool.hatch.version]
 path = "rack_dashboard/__init__.py"

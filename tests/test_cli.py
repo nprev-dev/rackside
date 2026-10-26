@@ -1,4 +1,4 @@
-"""The rack-dashboard command's options."""
+"""The rackside command's options."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def test_version(capsys):
         cli.parse(["--version"])
 
     assert stop.value.code == 0
-    assert capsys.readouterr().out.strip() == f"rack-dashboard {rack_dashboard.__version__}"
+    assert capsys.readouterr().out.strip() == f"rackside {rack_dashboard.__version__}"
 
 
 def test_unknown_option_is_refused(capsys):
@@ -53,9 +53,9 @@ def test_help_names_the_settings(capsys):
 
 
 def test_written_settings_do_not_override_what_is_set_for_this_run(tmp_path, monkeypatch):
-    (tmp_path / "rack-dashboard").mkdir()
-    (tmp_path / "rack-dashboard" / "env").write_text("DASH_HOST=0.0.0.0\nDASH_PORT=9000\n")
-    monkeypatch.setattr(cli.paths, "settings_file", lambda: tmp_path / "rack-dashboard" / "env")
+    (tmp_path / "rackside").mkdir()
+    (tmp_path / "rackside" / "env").write_text("DASH_HOST=0.0.0.0\nDASH_PORT=9000\n")
+    monkeypatch.setattr(cli.paths, "settings_file", lambda: tmp_path / "rackside" / "env")
     environ = {"DASH_PORT": "8800"}
 
     cli.load_settings(environ)
@@ -75,7 +75,7 @@ def test_no_settings_file_is_fine(tmp_path, monkeypatch):
 def test_without_a_window_output_goes_to_a_log(tmp_path, monkeypatch):
     import sys
 
-    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "data" / "rack-dashboard.log")
+    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "data" / "rackside.log")
     monkeypatch.setattr(sys, "stdout", None)
     monkeypatch.setattr(sys, "stderr", None)
 
@@ -84,14 +84,14 @@ def test_without_a_window_output_goes_to_a_log(tmp_path, monkeypatch):
     sys.stderr.write("a warning\n")
     sys.stdout.close()
 
-    lines = (tmp_path / "data" / "rack-dashboard.log").read_text().splitlines()
+    lines = (tmp_path / "data" / "rackside.log").read_text().splitlines()
     assert lines[0].startswith("--- started 20") and lines[1:] == ["started", "a warning"]
 
 
 def test_with_a_window_nothing_is_redirected(tmp_path, monkeypatch):
     import sys
 
-    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "data" / "rack-dashboard.log")
+    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "data" / "rackside.log")
     before = (sys.stdout, sys.stderr)
 
     cli.keep_a_log()
@@ -119,7 +119,7 @@ class Screen:
 def test_started_by_the_system_it_keeps_a_log(tmp_path, monkeypatch, terminal):
     import sys
 
-    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "rack-dashboard.log")
+    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "rackside.log")
     monkeypatch.setattr(sys, "stdout", Screen(terminal))
     monkeypatch.setattr(sys, "stderr", Screen(terminal))
 
@@ -127,7 +127,7 @@ def test_started_by_the_system_it_keeps_a_log(tmp_path, monkeypatch, terminal):
     print("listening")
     sys.stdout.close()
 
-    assert (tmp_path / "rack-dashboard.log").read_text().splitlines()[1:] == ["listening"]
+    assert (tmp_path / "rackside.log").read_text().splitlines()[1:] == ["listening"]
 
 
 @pytest.mark.parametrize("terminal", [True, False])
@@ -136,13 +136,13 @@ def test_started_by_hand_it_prints_wherever_its_output_was_pointed(tmp_path, mon
 
     # A terminal, or a file or pipe someone chose: either way that choice is theirs.
     screen = Screen(terminal)
-    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "rack-dashboard.log")
+    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "rackside.log")
     monkeypatch.setattr(sys, "stdout", screen)
     monkeypatch.setattr(sys, "stderr", screen)
 
     cli.keep_a_log()
 
-    assert sys.stdout is screen and not (tmp_path / "rack-dashboard.log").exists()
+    assert sys.stdout is screen and not (tmp_path / "rackside.log").exists()
 
 
 def test_the_start_up_entry_can_say_it_is_the_system(tmp_path):
@@ -153,7 +153,7 @@ def test_a_log_that_cannot_be_written_does_not_stop_the_start(tmp_path, monkeypa
     import sys
 
     (tmp_path / "in-the-way").write_text("a file where a folder should be")
-    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "in-the-way" / "rack-dashboard.log")
+    monkeypatch.setattr(cli.paths, "log_file", lambda: tmp_path / "in-the-way" / "rackside.log")
     monkeypatch.setattr(sys, "stdout", None)
     monkeypatch.setattr(sys, "stderr", None)
 

@@ -2,6 +2,14 @@
 
 What changed in each release. The section for a version becomes the notes of that release on GitHub.
 
+## 0.2.0
+
+Rack Dashboard is now called Rackside.
+
+- The command is `rackside`, the install folder `~/rackside` (`rackside` in your user folder on Windows), and the GitHub repository `nprev-dev/rackside`. Old links to the repository still work.
+- Installing 0.2.0 over 0.1.0 takes the old install over: its start-up entry is replaced, and its folder moves to the new name with your settings and history in it. An install you had put in a folder of your own stays in that folder.
+- The page title and every message say Rackside.
+
 ## 0.1.0
 
 The first release.

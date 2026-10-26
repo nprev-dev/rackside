@@ -1,4 +1,4 @@
-"""The rack-dashboard command: reads its options and runs the server."""
+"""The rackside command: reads its options and runs the server."""
 
 from __future__ import annotations
 
