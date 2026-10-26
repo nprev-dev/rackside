@@ -24,7 +24,10 @@ jobs:
           python-version: "3.12"
       - name: The version, the tag and the changelog agree
         id: check
-        run: echo "version=$(python .github/release_notes.py "$GITHUB_REF" notes.md)" >> "$GITHUB_OUTPUT"
+        # Taken apart in two lines so that a failed check fails the step: inside echo, it would not.
+        run: |
+          version=$(python .github/release_notes.py "$GITHUB_REF" notes.md)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Tests
         run: |
           python -m pip install -e ".[dev]"
@@ -33,6 +36,7 @@ jobs:
         env:
           VERSION: ${{ steps.check.outputs.version }}
         run: |
+          test -n "$VERSION"
           python -m pip install build
           python -m build --outdir dist
           sed "s/^RELEASE=\"\"$/RELEASE=\"$VERSION\"/" install.sh > dist/install.sh

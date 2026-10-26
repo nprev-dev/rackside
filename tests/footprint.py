@@ -118,6 +118,12 @@ def main(argv: list[str]) -> int:
     home = Path(now["home"])
     allowed = [value for index, value in enumerate(argv) if index > 0 and argv[index - 1] == "--allow"]
 
+    # The copy of the repository this runs from is the tests' own business, not the install's; it can
+    # even carry the program's name (GitHub checks a repository out into a folder named after it).
+    # Run from the home folder itself, that would excuse everything, so then it does not apply.
+    if Path.cwd() != home and Path.cwd() not in home.parents:
+        allowed.append(str(Path.cwd()))
+
     def is_allowed(path: str) -> bool:
         if path.startswith("registry:"):
             return path in allowed
