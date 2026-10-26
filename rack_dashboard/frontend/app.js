@@ -18,6 +18,8 @@ const SPINNER = "|/-\\";
 
 const linkLabel = document.getElementById("link-label");
 const spinner = document.getElementById("spinner");
+// Which release this is, for anyone reporting what they see.
+const version = document.getElementById("version");
 const clock = document.getElementById("clock");
 const date = document.getElementById("date");
 
@@ -63,6 +65,7 @@ function connect() {
     setText(spinner, SPINNER[received % SPINNER.length]);
     setLink("live");
     const snapshot = JSON.parse(event.data);
+    setText(version, snapshot.version ? `v${snapshot.version}` : "");
     render("top strip", renderKpis, snapshot);
     render("centrepiece", renderHero, snapshot);
     render("containers", renderContainers, snapshot.containers);

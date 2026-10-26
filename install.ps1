@@ -1,7 +1,10 @@
 # Installs Rack Dashboard on Windows for the person running this script. It needs no administrator
 # rights. (On Linux and macOS, use install.sh.)
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/nprev-dev/Docker-UI-app/main/install.ps1 | iex"
+#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1 | iex"
+#
+# Each release comes with its own copy of this script, which installs that release. Run from
+# anywhere else (the repository itself), it hands over to the installer of the latest release.
 #
 # Everything goes into one folder, rack-dashboard in your user folder: the program, the Python it
 # runs on, your settings, what it saves, its log, and a script that removes it all again
@@ -12,14 +15,16 @@
 #
 # To pass options, run it as a block instead:
 #
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/nprev-dev/Docker-UI-app/main/install.ps1))) -Lan
+#   & ([scriptblock]::Create((irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1))) -Lan
 #
 #   -Lan          let other machines on the network open the page (the default is this machine only)
 #   -Port N       listen on port N (default 8787)
 #   -Dir PATH     use another folder than rack-dashboard in your user folder
 #   -NoStartup    install only; do not set it up to start by itself
 #   -Uninstall    remove it: the start-up entry and the folder with everything in it
-#   -Ref NAME     install a branch, tag or commit other than main
+#   -Version X    install release X (for example 0.1.0) instead of the latest one
+#   -Ref NAME     install the code of a branch, tag or commit instead of a release ("main" is the
+#                 newest code, not yet released)
 #
 # The program is fetched with uv (https://docs.astral.sh/uv/), of which the folder gets its own copy.
 
@@ -29,14 +34,19 @@ param(
     [string]$Dir = "",
     [switch]$NoStartup,
     [switch]$Uninstall,
-    [string]$Ref = "main",
+    [string]$Version = "",
+    [string]$Ref = "",
     # For trying out a copy that is not on GitHub: a folder, a built package or an address.
     [string]$Source = "",
     [switch]$Help
 )
 
 $RackDashboard = @{
-    Repo = "https://github.com/nprev-dev/Docker-UI-app"
+    # RACK_DASHBOARD_REPO is for trying this script against a stand-in for GitHub (see tests/fake_github.py).
+    Repo = $(if ($env:RACK_DASHBOARD_REPO) { $env:RACK_DASHBOARD_REPO } else { "https://github.com/nprev-dev/Docker-UI-app" })
+    # The release this copy of the script installs. Empty in the repository; filled in when a release
+    # is built (see .github/workflows/release.yml).
+    Release = ""
     Name = "rack-dashboard"
     # The name of the entry among the programs Windows starts at sign-in.
     Entry = "RackDashboard"
@@ -186,11 +196,30 @@ function Test-RackAnswering {
     }
 }
 
+# Runs the installer of another release with the same options. A release's installer installs that
+# release, so script and program always come from the same release and fit together.
+function Invoke-RackRelease {
+    param([string]$Url, [string]$What, [string]$Folder)
+    try {
+        $text = "$(Invoke-RestMethod -UseBasicParsing -Uri $Url)"
+    } catch {
+        throw "could not download the installer of $What ($Url). For the newest code instead of a release, add: -Ref main"
+    }
+    if ($text -notmatch '(?m)^\s*Release = "\d') { throw "what came from $Url is not the installer of a release" }
+    $options = @{ Dir = $Folder }
+    if ($Lan) { $options.Lan = $true }
+    if ($Port) { $options.Port = $Port }
+    if ($NoStartup) { $options.NoStartup = $true }
+    & ([scriptblock]::Create($text)) @options
+}
+
 function Install-RackDashboard {
     $ErrorActionPreference = "Stop"
     # The progress bar of Windows PowerShell slows a download down many times over.
     $ProgressPreference = "SilentlyContinue"
     $name = $RackDashboard.Name
+    $repo = $RackDashboard.Repo
+    $release = $RackDashboard.Release
 
     if ($Help) {
         Write-Host @"
@@ -201,7 +230,9 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
   -Dir PATH     use another folder than rack-dashboard in your user folder
   -NoStartup    install only; do not set it up to start by itself
   -Uninstall    remove it: the start-up entry and the folder with everything in it
-  -Ref NAME     install a branch, tag or commit other than main
+  -Version X    install release X (for example 0.1.0) instead of the latest one
+  -Ref NAME     install the code of a branch, tag or commit instead of a release
+                ("main" is the newest code, not yet released)
 "@
         return
     }
@@ -211,6 +242,11 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
     if ($Port -ne 0 -and ($Port -lt 1 -or $Port -gt 65535)) {
         throw "-Port needs a number from 1 to 65535"
     }
+    $wanted = $Version.TrimStart("v")
+    if ($wanted -and $wanted -notmatch '^\d+(\.\d+)*$') { throw "-Version needs a release number, like 0.1.0" }
+    if ($wanted -and $Ref) { throw "-Version and -Ref cannot be used together" }
+    # Older copies of Windows PowerShell do not offer the encryption GitHub asks for unless told to.
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
     # Which folder. One that the start-up entry already points to is the one meant, unless told otherwise.
     $existing = Get-RackInstalledFolder
@@ -231,6 +267,22 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
         return
     }
 
+    # What to install: a release, or with -Ref the code of a branch, tag or commit. A release other
+    # than this script's own is installed by that release's installer.
+    if (-not $Source -and -not $Ref) {
+        if (-not $wanted -and -not $release) {
+            Invoke-RackRelease "$repo/releases/latest/download/install.ps1" "the latest release" $folder
+            return
+        }
+        if ($wanted -and $wanted -ne $release) {
+            Invoke-RackRelease "$repo/releases/download/v$wanted/install.ps1" "release $wanted" $folder
+            return
+        }
+        $Source = "$name @ $repo/releases/download/v$release/rack_dashboard-$release-py3-none-any.whl"
+    } elseif (-not $Source) {
+        $Source = "$name @ $repo/archive/$Ref.tar.gz"
+    }
+
     if ($Dir -and $existing -and ($existing -ne $folder) -and (Test-Path -LiteralPath $existing)) {
         throw "Rack Dashboard is already installed in $existing. Remove it first (uninstall.cmd in that folder), or leave out -Dir to update it."
     }
@@ -245,8 +297,6 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
     [IO.File]::WriteAllText((Join-Path $folder "uninstall.ps1"), (($RackDashboardUninstaller -replace "`r?`n", "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
     [IO.File]::WriteAllText((Join-Path $folder "uninstall.cmd"), (($RackDashboardUninstallerCmd -replace "`r?`n", "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
 
-    # Older copies of Windows PowerShell do not offer the encryption GitHub asks for unless told to.
-    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
     # uv is told through the environment where to put things, its temporary files included: those
     # go into the folder as well and are removed at the end. What was set before is put back
@@ -292,9 +342,9 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
         }
 
         # 2. Python and the dashboard itself, both kept inside the folder. Nothing is left in a cache.
-        if (-not $Source) { $Source = "$name @ $($RackDashboard.Repo)/archive/$Ref.tar.gz" }
         if ((Stop-RackDashboard $folder) -gt 0) { Write-Host "Stopped the dashboard that was running." }
-        Write-Host "Installing $name into $folder ..."
+        $what = if ($Ref) { " (the code of $Ref, not a release)" } elseif ($release) { " $release" } else { "" }
+        Write-Host "Installing $name$what into $folder ..."
         $python = Invoke-RackTool $uv @("python", "install", $RackDashboard.Python, "--no-bin", "--no-registry", "--no-cache", "--quiet")
         if ($python.Code -ne 0) { throw "could not fetch Python $($RackDashboard.Python):`n$($python.Printed)" }
         $installed = Invoke-RackTool $uv @("tool", "install", "--force", "--quiet", "--no-cache", "--managed-python", "--python", $RackDashboard.Python, $Source)
