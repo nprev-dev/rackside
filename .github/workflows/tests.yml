@@ -148,7 +148,7 @@ jobs:
         shell: powershell
         run: |
           $text = Invoke-RestMethod "https://raw.githubusercontent.com/$env:GITHUB_REPOSITORY/$env:GITHUB_SHA/install.ps1"
-          $told = $text.Replace('[string]$Ref = "main"', '[string]$Ref = "' + $env:GITHUB_SHA + '"')
+          $told = $text.Replace('[string]$Ref = ""', '[string]$Ref = "' + $env:GITHUB_SHA + '"')
           if ($told -eq $text) { throw "the script no longer has the line this test changes" }
           $told | Invoke-Expression
           foreach ($name in "UV_UNMANAGED_INSTALL", "UV_PYTHON_INSTALL_DIR", "UV_TOOL_DIR", "UV_TOOL_BIN_DIR") {

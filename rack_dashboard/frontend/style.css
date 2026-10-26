@@ -585,6 +585,11 @@ body[data-link] #kpi-clock .kpi-value {
   color: var(--accent) !important;
 }
 
+/* The version is not news, good or bad: it stays faint whatever the stream does. */
+#kpi-clock #version {
+  color: var(--ink-3) !important;
+}
+
 body[data-link="stale"] #kpi-clock .kpi-sub,
 body[data-link="stale"] #kpi-clock .kpi-sub * {
   color: var(--warn) !important;

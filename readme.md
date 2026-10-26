@@ -53,13 +53,13 @@ Run this on the machine you want to watch, as the user who should run the dashbo
 Linux and macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nprev-dev/Docker-UI-app/main/install.sh | sh
+curl -fsSL https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.sh | sh
 ```
 
 Windows, in PowerShell or the command prompt:
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/nprev-dev/Docker-UI-app/main/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1 | iex"
 ```
 
 Then open <http://127.0.0.1:8787> on that machine.
@@ -112,11 +112,11 @@ Two things belong to the system and are not the dashboard's to delete. On Linux,
 By default only the machine itself can open the page. To let the rest of your network see it, install with the `lan` option:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nprev-dev/Docker-UI-app/main/install.sh | sh -s -- --lan
+curl -fsSL https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.sh | sh -s -- --lan
 ```
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nprev-dev/Docker-UI-app/main/install.ps1))) -Lan"
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1))) -Lan"
 ```
 
 There is no login. Anyone who can reach the machine then sees your open ports, addresses and container names, so use this only on a network you trust. On Windows the firewall will ask whether to allow it the first time; until you say yes, other machines get no answer.
@@ -128,8 +128,10 @@ Options go where `--lan` and `-Lan` are in the commands above.
 - `--port N` (Windows: `-Port N`) listens on another port.
 - `--dir PATH` (Windows: `-Dir PATH`) uses another folder than `rack-dashboard` in your home folder.
 - `--no-service` (Windows: `-NoStartup`) installs it and leaves starting it to you.
+- `--version 0.1.0` (Windows: `-Version 0.1.0`) installs that release instead of the latest one. The [releases page](https://github.com/nprev-dev/Docker-UI-app/releases) lists them all, with what changed in each.
+- `--ref main` (Windows: `-Ref main`) installs the newest code, before it has been released. It may be unfinished.
 
-Running the install command again updates to the newest version. It finds the folder by itself and keeps your settings and history.
+Running the install command again updates to the latest release. It finds the folder by itself and keeps your settings and history. The page shows which version it is in the top right corner, beside the connection status.
 
 ### On a monitor in the rack
 
@@ -244,9 +246,11 @@ rack_dashboard/            Starlette app. Three collectors (containers, network,
 rack_dashboard/frontend/   The page: ES modules, canvas for the graphs and the centrepiece,
                            no framework.
 tests/                     pytest suite, plus checks of the animation logic.
-install.sh, install.ps1    The installers described above.
+install.sh, install.ps1    The installers described above. Each release carries copies that know
+                           which release they belong to.
+CHANGELOG.md               What changed in each release.
 .github/workflows/         Runs the tests, starts the dashboard and runs both installers on
-                           Linux, Windows and macOS for every push.
+                           Linux, Windows and macOS for every push, and makes the releases.
 ```
 
 `GET /api/snapshot` returns the latest reading as JSON and `GET /api/stream` is the live stream, in case you want the data for something else.
@@ -270,6 +274,22 @@ The tests:
 ```
 
 The checks of the animation logic are written in JavaScript and run under `gjs`, which GNOME desktops have installed, or under Node.js. Without either that one test is skipped.
+
+### Making a release
+
+1. Set the new version in `rack_dashboard/__init__.py`: the middle number for new things, the last one for fixes only (0.2.0, 0.2.1).
+2. Under a heading `## 0.2.0` in `CHANGELOG.md`, say in a few lines what changed. That text becomes the release's notes.
+3. Commit, push, then tag that commit and push the tag:
+
+```bash
+git tag v0.2.0
+```
+
+```bash
+git push origin v0.2.0
+```
+
+GitHub then checks that the tag, the version and the changelog agree, runs the tests, builds the package and tries the install from it on Linux, Windows and macOS before anything is published. Only then does the release appear, with the package and both install scripts attached, and the install commands above start handing it out. Last, it installs the published release on all three systems once more. `.github/workflows/release.yml` has the details; every push to a `ci/` branch goes through the same steps without publishing anything.
 
 ## Not done yet
 

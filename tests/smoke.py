@@ -52,7 +52,9 @@ def main(argv: list[str]) -> int:
         if status != 200 or marker not in body:
             problems.append(f"{path} is missing or wrong ({status})")
 
-    print(f"host {snapshot.get('host')!r}, system {snapshot.get('system')}, {len(snapshot.get('events') or [])} log lines")
+    print(f"version {snapshot.get('version')}, host {snapshot.get('host')!r}, system {snapshot.get('system')}, {len(snapshot.get('events') or [])} log lines")
+    if not snapshot.get("version"):
+        problems.append("the snapshot does not say which version it is")
     for name in ("containers", "network", "hardware"):
         section = snapshot.get(name) or {}
         state = "ok" if section.get("ok") else f"NOT OK: {section.get('error')}"

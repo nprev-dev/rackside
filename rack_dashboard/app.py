@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from rack_dashboard import paths
+from rack_dashboard import __version__, paths
 from rack_dashboard.collectors import system
 from rack_dashboard.collectors.containers import ContainerCollector
 from rack_dashboard.collectors.hardware import HardwareCollector
@@ -134,6 +134,7 @@ async def collect_loop() -> None:
             "boot": BOOT_TIME,
             "interval": INTERVAL,
             "fps": FPS,
+            "version": __version__,
             "containers": container_data,
             "network": network_data,
             "hardware": hardware_data,

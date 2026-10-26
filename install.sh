@@ -2,7 +2,10 @@
 # Installs Rack Dashboard for the person running this script, on Linux or macOS. It needs no root.
 # (On Windows, use install.ps1.)
 #
-#   curl -fsSL https://raw.githubusercontent.com/nprev-dev/Docker-UI-app/main/install.sh | sh
+#   curl -fsSL https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.sh | sh
+#
+# Each release comes with its own copy of this script, which installs that release. Run from
+# anywhere else (the repository itself), it hands over to the installer of the latest release.
 #
 # Everything goes into one folder, ~/rack-dashboard: the program, the Python it runs on, your
 # settings, what it saves, its log, and a script that removes it all again:
@@ -20,13 +23,19 @@
 #   --dir PATH     use another folder than ~/rack-dashboard
 #   --no-service   install only; do not set it up to start by itself
 #   --uninstall    remove it: the start-up entry and the folder with everything in it
-#   --ref NAME     install a branch, tag or commit other than main
+#   --version X    install release X (for example 0.1.0) instead of the latest one
+#   --ref NAME     install the code of a branch, tag or commit instead of a release ("main" is the
+#                  newest code, not yet released)
 #
 # The program is fetched with uv (https://docs.astral.sh/uv/), of which the folder gets its own copy.
 
 set -eu
 
-REPO="https://github.com/nprev-dev/Docker-UI-app"
+# RACK_DASHBOARD_REPO is for trying this script against a stand-in for GitHub (see tests/fake_github.py).
+REPO="${RACK_DASHBOARD_REPO:-https://github.com/nprev-dev/Docker-UI-app}"
+# The release this copy of the script installs. Empty in the repository; filled in when a release is
+# built (see .github/workflows/release.yml).
+RELEASE=""
 NAME="rack-dashboard"
 # What macOS knows the dashboard by.
 LABEL="io.github.nprev-dev.rack-dashboard"
@@ -48,7 +57,9 @@ Installs Rack Dashboard for the person running it, into one folder. No root need
   --dir PATH     use another folder than ~/rack-dashboard
   --no-service   install only; do not set it up to start by itself
   --uninstall    remove it: the start-up entry and the folder with everything in it
-  --ref NAME     install a branch, tag or commit other than main
+  --version X    install release X (for example 0.1.0) instead of the latest one
+  --ref NAME     install the code of a branch, tag or commit instead of a release
+                 ("main" is the newest code, not yet released)
 EOF
 }
 
@@ -287,8 +298,25 @@ EOF
     fi
 }
 
+# Runs the installer of another release with the same options. A release's installer installs that
+# release, so script and program always come from the same release and fit together.
+hand_over() {
+    scratch="$(mktemp)"
+    fetch "$1" > "$scratch" 2>/dev/null || { rm -f "$scratch"; fail "could not download the installer of $2 ($1). For the newest code instead of a release, add: --ref main"; }
+    grep -q '^RELEASE="[0-9]' "$scratch" || { rm -f "$scratch"; fail "what came from $1 is not the installer of a release"; }
+    set --
+    [ "$lan" -eq 0 ] || set -- "$@" --lan
+    [ -z "$port" ] || set -- "$@" --port "$port"
+    [ -z "$dir" ] || set -- "$@" --dir "$dir"
+    [ "$service" -eq 1 ] || set -- "$@" --no-service
+    code=0
+    sh "$scratch" "$@" || code=$?
+    rm -f "$scratch"
+    exit "$code"
+}
+
 main() {
-    lan=0; port=""; service=1; ref="main"; source=""; remove=0; dir=""
+    lan=0; port=""; service=1; ref=""; version=""; source=""; remove=0; dir=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --lan) lan=1 ;;
@@ -296,7 +324,8 @@ main() {
             --dir) [ $# -ge 2 ] && [ -n "$2" ] || fail "--dir needs a folder"; dir="$2"; shift ;;
             --no-service) service=0 ;;
             --uninstall) remove=1 ;;
-            --ref) [ $# -ge 2 ] || fail "--ref needs a name"; ref="$2"; shift ;;
+            --ref) [ $# -ge 2 ] && [ -n "$2" ] || fail "--ref needs a name"; ref="$2"; shift ;;
+            --version) [ $# -ge 2 ] || fail "--version needs a release number, like 0.1.0"; version="${2#v}"; shift ;;
             # For trying out a copy that is not on GitHub: a folder, a built package or an address.
             --source) [ $# -ge 2 ] || fail "--source needs a path or address"; source="$2"; shift ;;
             -h|--help) usage; exit 0 ;;
@@ -310,6 +339,11 @@ main() {
     if [ -n "$port" ] && { [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; }; then
         fail "--port needs a number from 1 to 65535"
     fi
+    case "$version" in
+        "") ;;
+        *[!0-9.]*|.*|*.|*..*) fail "--version needs a release number, like 0.1.0" ;;
+    esac
+    [ -z "$version" ] || [ -z "$ref" ] || fail "--version and --ref cannot be used together"
 
     system="$(uname -s)"
     case "$system" in
@@ -336,6 +370,19 @@ main() {
     while [ "${dir%/}" != "$dir" ]; do dir="${dir%/}"; done
     [ -n "$dir" ] && [ "$dir" != "$HOME" ] || fail "choose a folder of its own for --dir, not $dir/"
     plain_path "$dir" || fail "choose a folder whose path has none of these characters: \" \\ \$ % \` < > &"
+
+    # What to install: a release, or with --ref the code of a branch, tag or commit. A release other
+    # than this script's own is installed by that release's installer.
+    if [ "$remove" -eq 0 ] && [ -z "$source" ] && [ -z "$ref" ]; then
+        if [ -z "$version" ] && [ -z "$RELEASE" ]; then
+            hand_over "$REPO/releases/latest/download/install.sh" "the latest release"
+        elif [ -n "$version" ] && [ "$version" != "$RELEASE" ]; then
+            hand_over "$REPO/releases/download/v$version/install.sh" "release $version"
+        fi
+        source="$NAME @ $REPO/releases/download/v$RELEASE/rack_dashboard-$RELEASE-py3-none-any.whl"
+    elif [ -z "$source" ]; then
+        source="$NAME @ $REPO/archive/$ref.tar.gz"
+    fi
 
     if [ "$remove" -eq 1 ]; then
         scratch="$(mktemp)"
@@ -378,8 +425,7 @@ main() {
 
     # 2. Python and the dashboard itself, both kept inside the folder. Nothing is left in a cache.
     export UV_PYTHON_INSTALL_DIR="$dir/python" UV_TOOL_DIR="$dir/tools" UV_TOOL_BIN_DIR="$dir/bin"
-    [ -n "$source" ] || source="$NAME @ $REPO/archive/$ref.tar.gz"
-    say "Installing $NAME into $dir ..."
+    say "Installing $NAME${RELEASE:+ $RELEASE}${ref:+ (the code of $ref, not a release)} into $dir ..."
     "$uv_bin" python install "$PYTHON" --no-bin --no-registry --no-cache --quiet || fail "could not fetch Python $PYTHON"
     "$uv_bin" tool install --force --quiet --no-cache --managed-python --python "$PYTHON" "$source" || fail "could not install $NAME"
     rm -rf "$dir/.tmp"
