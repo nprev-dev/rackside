@@ -7,12 +7,12 @@ import sys
 from pathlib import Path
 from typing import Mapping
 
-NAME = "rack-dashboard"
+NAME = "rackside"
 PACKAGE = Path(__file__).resolve().parent
 # The page is shipped inside the package, so it is there however the dashboard was installed.
 FRONTEND = PACKAGE / "frontend"
 # The installers put the whole dashboard into one folder and leave a file of this name in it.
-MARKER = ".rack-dashboard"
+MARKER = ".rackside"
 
 
 def home(environ: Mapping[str, str] = os.environ, prefix: str | Path | None = None) -> Path | None:
@@ -21,7 +21,7 @@ def home(environ: Mapping[str, str] = os.environ, prefix: str | Path | None = No
     given = environ.get("DASH_HOME")
     if given:
         return Path(given)
-    # An installer puts the program's own Python in <folder>/tools/rack-dashboard.
+    # An installer puts the program's own Python in <folder>/tools/rackside.
     folder = Path(prefix if prefix is not None else sys.prefix).parent.parent
     return folder if (folder / MARKER).is_file() else None
 

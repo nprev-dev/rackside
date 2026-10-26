@@ -1,12 +1,12 @@
-# Installs Rack Dashboard on Windows for the person running this script. It needs no administrator
+# Installs Rackside on Windows for the person running this script. It needs no administrator
 # rights. (On Linux and macOS, use install.sh.)
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1 | iex"
+#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/nprev-dev/rackside/releases/latest/download/install.ps1 | iex"
 #
 # Each release comes with its own copy of this script, which installs that release. Run from
 # anywhere else (the repository itself), it hands over to the installer of the latest release.
 #
-# Everything goes into one folder, rack-dashboard in your user folder: the program, the Python it
+# Everything goes into one folder, rackside in your user folder: the program, the Python it
 # runs on, your settings, what it saves, its log, and a script that removes it all again
 # (double-click uninstall.cmd).
 #
@@ -15,11 +15,11 @@
 #
 # To pass options, run it as a block instead:
 #
-#   & ([scriptblock]::Create((irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1))) -Lan
+#   & ([scriptblock]::Create((irm https://github.com/nprev-dev/rackside/releases/latest/download/install.ps1))) -Lan
 #
 #   -Lan          let other machines on the network open the page (the default is this machine only)
 #   -Port N       listen on port N (default 8787)
-#   -Dir PATH     use another folder than rack-dashboard in your user folder
+#   -Dir PATH     use another folder than rackside in your user folder
 #   -NoStartup    install only; do not set it up to start by itself
 #   -Uninstall    remove it: the start-up entry and the folder with everything in it
 #   -Version X    install release X (for example 0.1.0) instead of the latest one
@@ -41,27 +41,35 @@ param(
     [switch]$Help
 )
 
-$RackDashboard = @{
-    # RACK_DASHBOARD_REPO is for trying this script against a stand-in for GitHub (see tests/fake_github.py).
-    Repo = $(if ($env:RACK_DASHBOARD_REPO) { $env:RACK_DASHBOARD_REPO } else { "https://github.com/nprev-dev/Docker-UI-app" })
+$Rackside = @{
+    # RACKSIDE_REPO is for trying this script against a stand-in for GitHub (see tests/fake_github.py).
+    Repo = $(if ($env:RACKSIDE_REPO) { $env:RACKSIDE_REPO } else { "https://github.com/nprev-dev/rackside" })
     # The release this copy of the script installs. Empty in the repository; filled in when a release
     # is built (see .github/workflows/release.yml).
     Release = ""
-    Name = "rack-dashboard"
+    Name = "rackside"
     # The name of the entry among the programs Windows starts at sign-in.
-    Entry = "RackDashboard"
+    Entry = "Rackside"
     RunKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
     # A file of this name marks a folder as made by this script. The dashboard looks for it too
     # (rack_dashboard/paths.py), and nothing is ever deleted from a folder without it.
-    Marker = ".rack-dashboard"
+    Marker = ".rackside"
     # The Python the dashboard is installed with: one the tests run on, not whatever came out last.
     Python = "3.14"
 }
 
+# Rackside was called Rack Dashboard up to version 0.1.0. An install from then is taken over: its
+# start-up entry is replaced, and its folder, settings and history included, becomes Rackside's.
+$RacksideBefore = @{
+    Name = "rack-dashboard"
+    Entry = "RackDashboard"
+    Marker = ".rack-dashboard"
+}
+
 # The script that takes everything away again. It is written into the folder, and it is also what
 # -Uninstall runs, so there is one way of removing things and not two.
-$RackDashboardUninstaller = @'
-# Removes Rack Dashboard: the entry that starts it when you sign in, and this folder with
+$RacksideUninstaller = @'
+# Removes Rackside: the entry that starts it when you sign in, and this folder with
 # everything in it (the program, its Python, your settings, the saved history and the log).
 #
 # Double-click uninstall.cmd beside this file, or run:
@@ -71,9 +79,9 @@ $RackDashboardUninstaller = @'
 param([string]$Folder = "", [switch]$Wait)
 
 $ErrorActionPreference = "Stop"
-$entry = "RackDashboard"
+$entry = "Rackside"
 $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-$marker = ".rack-dashboard"
+$marker = ".rackside"
 
 try {
     # Told a folder, that one; otherwise the folder this script is in.
@@ -94,9 +102,9 @@ try {
     }
 
     if (-not (Test-Path -LiteralPath $Folder)) {
-        if (-not $removed) { Write-Host "Rack Dashboard is not installed (no folder at $Folder)." }
+        if (-not $removed) { Write-Host "Rackside is not installed (no folder at $Folder)." }
     } elseif (-not (Test-Path -LiteralPath (Join-Path $Folder $marker) -PathType Leaf)) {
-        throw "$Folder was not made by the Rack Dashboard installer, so it was left alone."
+        throw "$Folder was not made by the Rackside installer, so it was left alone."
     } else {
         # Windows will not delete the files of a program that is running. Everything the dashboard
         # runs is inside its folder: the command, and the Python that does the work.
@@ -120,7 +128,7 @@ try {
                 Start-Sleep -Seconds 1
             }
         }
-        Write-Host "Removed $Folder and everything in it. Nothing of Rack Dashboard is left on this machine."
+        Write-Host "Removed $Folder and everything in it. Nothing of Rackside is left on this machine."
     }
 } catch {
     Write-Host "uninstall: $($_.Exception.Message)"
@@ -134,9 +142,9 @@ if ($Wait) { Start-Sleep -Seconds 4 }
 # What a double-click runs. It steps out of the folder first. The "(goto)" ends this file's turn
 # while the rest of the line still runs: without it, Windows would come back to read the next line
 # of a file that has just been deleted, and complain.
-$RackDashboardUninstallerCmd = @'
+$RacksideUninstallerCmd = @'
 @echo off
-rem Removes Rack Dashboard: the start-up entry and this folder with everything in it.
+rem Removes Rackside: the start-up entry and this folder with everything in it.
 cd /d "%TEMP%" & (goto) 2>nul & powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0uninstall.ps1" -Wait
 '@
 
@@ -151,18 +159,33 @@ function Invoke-RackTool {
 
 # The folder the start-up entry on this machine points to, if it is one of ours.
 function Get-RackInstalledFolder {
-    $started = (Get-ItemProperty -Path $RackDashboard.RunKey -Name $RackDashboard.Entry -ErrorAction SilentlyContinue).($RackDashboard.Entry)
+    $started = (Get-ItemProperty -Path $Rackside.RunKey -Name $Rackside.Entry -ErrorAction SilentlyContinue).($Rackside.Entry)
     if (-not $started) { return $null }
     $program = "$started".Trim('"')
-    $tail = "\bin\$($RackDashboard.Name)w.exe"
+    $tail = "\bin\$($Rackside.Name)w.exe"
     if (-not $program.EndsWith($tail, [StringComparison]::OrdinalIgnoreCase)) { return $null }
     $folder = $program.Substring(0, $program.Length - $tail.Length)
-    if (Test-Path -LiteralPath (Join-Path $folder $RackDashboard.Marker) -PathType Leaf) { return $folder }
+    if (Test-Path -LiteralPath (Join-Path $folder $Rackside.Marker) -PathType Leaf) { return $folder }
+    return $null
+}
+
+# The folder of an install from before the rename, if this machine has one.
+function Get-RackOldFolder {
+    $before = $RacksideBefore
+    $started = (Get-ItemProperty -Path $Rackside.RunKey -Name $before.Entry -ErrorAction SilentlyContinue).($before.Entry)
+    $folder = $null
+    if ($started) {
+        $program = "$started".Trim('"')
+        $tail = "\bin\$($before.Name)w.exe"
+        if ($program.EndsWith($tail, [StringComparison]::OrdinalIgnoreCase)) { $folder = $program.Substring(0, $program.Length - $tail.Length) }
+    }
+    if (-not $folder) { $folder = Join-Path $env:USERPROFILE $before.Name }
+    if (Test-Path -LiteralPath (Join-Path $folder $before.Marker) -PathType Leaf) { return $folder }
     return $null
 }
 
 # Stops a running dashboard: Windows will not replace the files of a program that is running.
-function Stop-RackDashboard {
+function Stop-Rackside {
     param([string]$Folder)
     $inside = $Folder + "\"
     $running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID -and $_.Path -and $_.Path.StartsWith($inside, [StringComparison]::OrdinalIgnoreCase) })
@@ -213,21 +236,21 @@ function Invoke-RackRelease {
     & ([scriptblock]::Create($text)) @options
 }
 
-function Install-RackDashboard {
+function Install-Rackside {
     $ErrorActionPreference = "Stop"
     # The progress bar of Windows PowerShell slows a download down many times over.
     $ProgressPreference = "SilentlyContinue"
-    $name = $RackDashboard.Name
-    $repo = $RackDashboard.Repo
-    $release = $RackDashboard.Release
+    $name = $Rackside.Name
+    $repo = $Rackside.Repo
+    $release = $Rackside.Release
 
     if ($Help) {
         Write-Host @"
-Installs Rack Dashboard for the person running it, into one folder. No administrator rights needed.
+Installs Rackside for the person running it, into one folder. No administrator rights needed.
 
   -Lan          let other machines on the network open the page (default: this machine only)
   -Port N       listen on port N (default 8787)
-  -Dir PATH     use another folder than rack-dashboard in your user folder
+  -Dir PATH     use another folder than rackside in your user folder
   -NoStartup    install only; do not set it up to start by itself
   -Uninstall    remove it: the start-up entry and the folder with everything in it
   -Version X    install release X (for example 0.1.0) instead of the latest one
@@ -250,10 +273,15 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
 
     # Which folder. One that the start-up entry already points to is the one meant, unless told otherwise.
     $existing = Get-RackInstalledFolder
+    $old = Get-RackOldFolder
     if ($Dir) {
         $folder = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Dir)
     } elseif ($existing) {
         $folder = $existing
+    } elseif ($old -and $old -ne (Join-Path $env:USERPROFILE $RacksideBefore.Name)) {
+        # An install from before the rename keeps a folder of its own; one in the old usual place
+        # moves to the new usual place.
+        $folder = $old
     } else {
         $folder = Join-Path $env:USERPROFILE $name
     }
@@ -263,7 +291,14 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
     }
 
     if ($Uninstall) {
-        & ([scriptblock]::Create($RackDashboardUninstaller)) -Folder $folder
+        if ($old -and (Test-Path -LiteralPath (Join-Path $old "uninstall.ps1"))) {
+            Write-Host "Removing the install from before the rename, in $old ..."
+            & ([scriptblock]::Create((Get-Content -Raw -LiteralPath (Join-Path $old "uninstall.ps1")))) -Folder $old
+        }
+        $started = Get-ItemProperty -Path $Rackside.RunKey -Name $Rackside.Entry -ErrorAction SilentlyContinue
+        if (-not $old -or (Test-Path -LiteralPath $folder) -or $started) {
+            & ([scriptblock]::Create($RacksideUninstaller)) -Folder $folder
+        }
         return
     }
 
@@ -278,24 +313,58 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
             Invoke-RackRelease "$repo/releases/download/v$wanted/install.ps1" "release $wanted" $folder
             return
         }
-        $Source = "$name @ $repo/releases/download/v$release/rack_dashboard-$release-py3-none-any.whl"
+        $Source = "$name @ $repo/releases/download/v$release/$name-$release-py3-none-any.whl"
     } elseif (-not $Source) {
         $Source = "$name @ $repo/archive/$Ref.tar.gz"
     }
 
-    if ($Dir -and $existing -and ($existing -ne $folder) -and (Test-Path -LiteralPath $existing)) {
-        throw "Rack Dashboard is already installed in $existing. Remove it first (uninstall.cmd in that folder), or leave out -Dir to update it."
+    if ($old) {
+        if ($old -ne $folder -and (Test-Path -LiteralPath $folder) -and @(Get-ChildItem -LiteralPath $folder -Force).Count -gt 0) {
+            throw "Rack Dashboard (Rackside's name before 0.2.0) is installed in $old, and $folder is already in use, so it cannot be moved there. Remove one of the two first."
+        }
+        Write-Host "Taking over the install from before the rename (Rack Dashboard, in $old) ..."
+        $null = Stop-Rackside $old
+        if (Get-ItemProperty -Path $Rackside.RunKey -Name $RacksideBefore.Entry -ErrorAction SilentlyContinue) {
+            Remove-ItemProperty -Path $Rackside.RunKey -Name $RacksideBefore.Entry
+        }
+        if ($old -ne $folder) {
+            if (Test-Path -LiteralPath $folder) { Remove-Item -LiteralPath $folder -Force }
+            $parent = Split-Path -Parent $folder
+            if (-not (Test-Path -LiteralPath $parent)) { $null = New-Item -ItemType Directory -Force -Path $parent }
+            $tries = 0
+            while (Test-Path -LiteralPath $old) {
+                try {
+                    Move-Item -LiteralPath $old -Destination $folder -ErrorAction Stop
+                } catch {
+                    # Files of a program that has just been stopped can stay locked for a moment.
+                    $tries += 1
+                    if ($tries -ge 5) { throw "could not move $old to ${folder}: $($_.Exception.Message)" }
+                    Start-Sleep -Seconds 1
+                }
+            }
+        }
+        # What only belonged to the old name. Everything else, settings and history first of all, stays.
+        foreach ($leftover in "tools\$($RacksideBefore.Name)", "bin\$($RacksideBefore.Name).exe", "bin\$($RacksideBefore.Name)w.exe", $RacksideBefore.Marker) {
+            Remove-Item -LiteralPath (Join-Path $folder $leftover) -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        $oldLog = Join-Path $folder "$($RacksideBefore.Name).log"
+        if (Test-Path -LiteralPath $oldLog) { Move-Item -LiteralPath $oldLog -Destination (Join-Path $folder "$name.log") -Force }
+        [IO.File]::WriteAllText((Join-Path $folder $Rackside.Marker), "")
     }
-    $marker = Join-Path $folder $RackDashboard.Marker
+
+    if ($Dir -and $existing -and ($existing -ne $folder) -and (Test-Path -LiteralPath $existing)) {
+        throw "Rackside is already installed in $existing. Remove it first (uninstall.cmd in that folder), or leave out -Dir to update it."
+    }
+    $marker = Join-Path $folder $Rackside.Marker
     if ((Test-Path -LiteralPath $folder) -and -not (Test-Path -LiteralPath $marker -PathType Leaf)) {
         if (-not (Test-Path -LiteralPath $folder -PathType Container) -or @(Get-ChildItem -LiteralPath $folder -Force).Count -gt 0) {
             throw "$folder exists and was not made by this installer. Choose another folder with -Dir."
         }
     }
     $null = New-Item -ItemType Directory -Force -Path $folder
-    [IO.File]::WriteAllText($marker, "Rack Dashboard is installed in this folder. Everything it uses is in here; uninstall.cmd removes it.`r`n")
-    [IO.File]::WriteAllText((Join-Path $folder "uninstall.ps1"), (($RackDashboardUninstaller -replace "`r?`n", "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
-    [IO.File]::WriteAllText((Join-Path $folder "uninstall.cmd"), (($RackDashboardUninstallerCmd -replace "`r?`n", "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
+    [IO.File]::WriteAllText($marker, "Rackside is installed in this folder. Everything it uses is in here; uninstall.cmd removes it.`r`n")
+    [IO.File]::WriteAllText((Join-Path $folder "uninstall.ps1"), (($RacksideUninstaller -replace "`r?`n", "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
+    [IO.File]::WriteAllText((Join-Path $folder "uninstall.cmd"), (($RacksideUninstallerCmd -replace "`r?`n", "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
 
 
     # uv is told through the environment where to put things, its temporary files included: those
@@ -342,12 +411,12 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
         }
 
         # 2. Python and the dashboard itself, both kept inside the folder. Nothing is left in a cache.
-        if ((Stop-RackDashboard $folder) -gt 0) { Write-Host "Stopped the dashboard that was running." }
+        if ((Stop-Rackside $folder) -gt 0) { Write-Host "Stopped the dashboard that was running." }
         $what = if ($Ref) { " (the code of $Ref, not a release)" } elseif ($release) { " $release" } else { "" }
         Write-Host "Installing $name$what into $folder ..."
-        $python = Invoke-RackTool $uv @("python", "install", $RackDashboard.Python, "--no-bin", "--no-registry", "--no-cache", "--quiet")
-        if ($python.Code -ne 0) { throw "could not fetch Python $($RackDashboard.Python):`n$($python.Printed)" }
-        $installed = Invoke-RackTool $uv @("tool", "install", "--force", "--quiet", "--no-cache", "--managed-python", "--python", $RackDashboard.Python, $Source)
+        $python = Invoke-RackTool $uv @("python", "install", $Rackside.Python, "--no-bin", "--no-registry", "--no-cache", "--quiet")
+        if ($python.Code -ne 0) { throw "could not fetch Python $($Rackside.Python):`n$($python.Printed)" }
+        $installed = Invoke-RackTool $uv @("tool", "install", "--force", "--quiet", "--no-cache", "--managed-python", "--python", $Rackside.Python, $Source)
         if ($installed.Code -ne 0) { throw "could not install ${name}:`n$($installed.Printed)" }
     } finally {
         foreach ($key in $told.Keys) { [Environment]::SetEnvironmentVariable($key, $before[$key], "Process") }
@@ -367,7 +436,7 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
     $log = Join-Path $folder "$name.log"
     if (-not (Test-Path -LiteralPath $settings)) {
         [IO.File]::WriteAllLines($settings, [string[]]@(
-            "# Settings for Rack Dashboard, one KEY=value per line. The readme lists them all.",
+            "# Settings for Rackside, one KEY=value per line. The readme lists them all.",
             "# They take effect when the dashboard is next started."
         ))
     }
@@ -386,8 +455,8 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
     }
 
     # 4. Have Windows start it at sign-in, and start it now.
-    if (-not (Test-Path -Path $RackDashboard.RunKey)) { $null = New-Item -Path $RackDashboard.RunKey -Force }
-    Set-ItemProperty -Path $RackDashboard.RunKey -Name $RackDashboard.Entry -Value ('"{0}"' -f $quiet)
+    if (-not (Test-Path -Path $Rackside.RunKey)) { $null = New-Item -Path $Rackside.RunKey -Force }
+    Set-ItemProperty -Path $Rackside.RunKey -Name $Rackside.Entry -Value ('"{0}"' -f $quiet)
     $since = Get-Date
     Start-Process -FilePath $quiet
 
@@ -409,7 +478,7 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
         Start-Sleep -Seconds 1
     }
     Write-Host ""
-    Write-Host "Rack Dashboard is running: http://127.0.0.1:$listening"
+    Write-Host "Rackside is running: http://127.0.0.1:$listening"
     if ($current -match "^DASH_HOST=0\.0\.0\.0") {
         $address = $null
         try {
@@ -425,4 +494,4 @@ Installs Rack Dashboard for the person running it, into one folder. No administr
     Write-Host "It starts when you sign in to Windows (Task Manager, Startup apps, lists it)."
 }
 
-Install-RackDashboard
+Install-Rackside

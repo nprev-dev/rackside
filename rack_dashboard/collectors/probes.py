@@ -24,9 +24,9 @@ SPEED_HOST = "speed.cloudflare.com"
 SPEED_DOWN_BYTES = 50 * MB
 SPEED_UP_CAP = 25 * MB
 # Without a name of its own the request is taken for a bot and refused.
-HEADERS = {"User-Agent": "rack-dashboard/1.0"}
+HEADERS = {"User-Agent": "rackside/1.0"}
 
-PING_PAYLOAD = b"rack-dashboard--"
+PING_PAYLOAD = b"rackside--------"
 
 
 # --- ping ---------------------------------------------------------------------

@@ -1,16 +1,16 @@
 #!/bin/sh
-# Installs Rack Dashboard for the person running this script, on Linux or macOS. It needs no root.
+# Installs Rackside for the person running this script, on Linux or macOS. It needs no root.
 # (On Windows, use install.ps1.)
 #
-#   curl -fsSL https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.sh | sh
+#   curl -fsSL https://github.com/nprev-dev/rackside/releases/latest/download/install.sh | sh
 #
 # Each release comes with its own copy of this script, which installs that release. Run from
 # anywhere else (the repository itself), it hands over to the installer of the latest release.
 #
-# Everything goes into one folder, ~/rack-dashboard: the program, the Python it runs on, your
+# Everything goes into one folder, ~/rackside: the program, the Python it runs on, your
 # settings, what it saves, its log, and a script that removes it all again:
 #
-#   sh ~/rack-dashboard/uninstall.sh
+#   sh ~/rackside/uninstall.sh
 #
 # The one thing outside that folder is the entry that tells the system to start the dashboard,
 # because each system keeps those in a place of its own: a systemd service for this user on Linux,
@@ -20,7 +20,7 @@
 #
 #   --lan          let other machines on the network open the page (the default is this machine only)
 #   --port N       listen on port N (default 8787)
-#   --dir PATH     use another folder than ~/rack-dashboard
+#   --dir PATH     use another folder than ~/rackside
 #   --no-service   install only; do not set it up to start by itself
 #   --uninstall    remove it: the start-up entry and the folder with everything in it
 #   --version X    install release X (for example 0.1.0) instead of the latest one
@@ -31,30 +31,35 @@
 
 set -eu
 
-# RACK_DASHBOARD_REPO is for trying this script against a stand-in for GitHub (see tests/fake_github.py).
-REPO="${RACK_DASHBOARD_REPO:-https://github.com/nprev-dev/Docker-UI-app}"
+# RACKSIDE_REPO is for trying this script against a stand-in for GitHub (see tests/fake_github.py).
+REPO="${RACKSIDE_REPO:-https://github.com/nprev-dev/rackside}"
 # The release this copy of the script installs. Empty in the repository; filled in when a release is
 # built (see .github/workflows/release.yml).
 RELEASE=""
-NAME="rack-dashboard"
+NAME="rackside"
 # What macOS knows the dashboard by.
-LABEL="io.github.nprev-dev.rack-dashboard"
+LABEL="io.github.nprev-dev.rackside"
 # A file of this name marks a folder as made by this script. The dashboard looks for it too
 # (rack_dashboard/paths.py), and nothing is ever deleted from a folder without it.
-MARKER=".rack-dashboard"
+MARKER=".rackside"
 # The Python the dashboard is installed with: one the tests run on, not whatever came out last.
 PYTHON="3.14"
+# Rackside was called Rack Dashboard up to version 0.1.0. An install from then is taken over: its
+# start-up entry is replaced, and its folder, settings and history included, becomes Rackside's.
+OLD_NAME="rack-dashboard"
+OLD_LABEL="io.github.nprev-dev.rack-dashboard"
+OLD_MARKER=".rack-dashboard"
 
 say() { printf '%s\n' "$*"; }
 fail() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
 
 usage() {
     cat <<EOF
-Installs Rack Dashboard for the person running it, into one folder. No root needed.
+Installs Rackside for the person running it, into one folder. No root needed.
 
   --lan          let other machines on the network open the page (default: this machine only)
   --port N       listen on port N (default 8787)
-  --dir PATH     use another folder than ~/rack-dashboard
+  --dir PATH     use another folder than ~/rackside
   --no-service   install only; do not set it up to start by itself
   --uninstall    remove it: the start-up entry and the folder with everything in it
   --version X    install release X (for example 0.1.0) instead of the latest one
@@ -136,7 +141,7 @@ installed_dir() {
 write_uninstaller() {
     {
         printf '%s\n' '#!/bin/sh' \
-            '# Removes Rack Dashboard: the entry that starts it, and this folder with everything in it' \
+            '# Removes Rackside: the entry that starts it, and this folder with everything in it' \
             '# (the program, its Python, your settings, the saved history and the log).' \
             '#' \
             '#   sh uninstall.sh' \
@@ -186,11 +191,11 @@ main() {
     fi
 
     if [ ! -d "$folder" ]; then
-        [ "$removed" -eq 1 ] || echo "Rack Dashboard is not installed (no folder at $folder)."
+        [ "$removed" -eq 1 ] || echo "Rackside is not installed (no folder at $folder)."
         return 0
     fi
     if [ ! -f "$folder/$MARKER" ]; then
-        echo "uninstall.sh: $folder was not made by the Rack Dashboard installer, so it was left alone." >&2
+        echo "uninstall.sh: $folder was not made by the Rackside installer, so it was left alone." >&2
         return 1
     fi
     # Starting at boot with nobody logged in was switched on by the installer; switch it back off.
@@ -200,7 +205,7 @@ main() {
     # Not from inside the folder that is about to go.
     cd /
     rm -rf "$folder"
-    echo "Removed $folder and everything in it. Nothing of Rack Dashboard is left on this machine."
+    echo "Removed $folder and everything in it. Nothing of Rackside is left on this machine."
 }
 
 # Everything runs from here, so the script is read to its end before it deletes itself.
@@ -267,7 +272,7 @@ start_systemd() {
     mkdir -p "$(dirname "$unit")"
     cat > "$unit" <<EOF
 [Unit]
-Description=Rack Dashboard
+Description=Rackside
 Documentation=$REPO
 # Someone who simply deleted the folder gets nothing started, not a service failing forever.
 ConditionPathExists=$dir/bin/$NAME
@@ -295,6 +300,37 @@ EOF
             say "Note: it will start when you log in. To have it start at boot with nobody logged in, run:"
             say "  sudo loginctl enable-linger $user"
         fi
+    fi
+}
+
+# The folder of an install from before the rename, if this machine has one.
+old_install() {
+    found=""
+    if [ -f "$old_unit" ]; then
+        found="$(sed -n 's/^Environment="DASH_HOME=\(.*\)"$/\1/p' "$old_unit" | head -n 1)"
+    elif [ -f "$old_plist" ]; then
+        found="$(sed -n '/<key>DASH_HOME<\/key>/{n;s/^ *<string>\(.*\)<\/string>$/\1/p;}' "$old_plist" | head -n 1)"
+    fi
+    [ -n "$found" ] || found="$HOME/$OLD_NAME"
+    [ ! -f "$found/$OLD_MARKER" ] || printf '%s\n' "$found"
+}
+
+# Stops the install from before the rename and removes its start-up entry. Its folder stays.
+retire_old_install() {
+    if [ -f "$old_unit" ]; then
+        systemctl --user disable --now "$OLD_NAME.service" >/dev/null 2>&1 || true
+        rm -f "$old_unit"
+        systemctl --user daemon-reload >/dev/null 2>&1 || true
+        systemctl --user reset-failed "$OLD_NAME.service" >/dev/null 2>&1 || true
+    fi
+    if [ -f "$old_plist" ]; then
+        launchctl bootout "gui/$(id -u)/$OLD_LABEL" >/dev/null 2>&1 || true
+        waited=0
+        while launchctl print "gui/$(id -u)/$OLD_LABEL" >/dev/null 2>&1 && [ "$waited" -lt 10 ]; do
+            sleep 1
+            waited=$((waited + 1))
+        done
+        rm -f "$old_plist"
     fi
 }
 
@@ -356,11 +392,19 @@ main() {
     plist="$(plist_path)"
     kind="$(service_kind)"
     user="$(id -un)"
+    old_unit="$(dirname "$unit")/$OLD_NAME.service"
+    old_plist="$(dirname "$plist")/$OLD_LABEL.plist"
     plain_path "$unit" && plain_path "$plist" || fail "the path of your home folder holds a character this script cannot work with (one of \" \\ \$ % \` < > &)"
 
     # Which folder. One that a start-up entry already points to is the one meant, unless told otherwise.
     existing="$(installed_dir)"
+    old="$(old_install)"
     chosen="$dir"
+    # An install from before the rename keeps its folder if it was given one of its own; one in the
+    # old usual place moves to the new usual place.
+    if [ -z "$dir" ] && [ -z "$existing" ] && [ -n "$old" ] && [ "$old" != "$HOME/$OLD_NAME" ]; then
+        dir="$old"
+    fi
     [ -n "$dir" ] || dir="${existing:-$HOME/$NAME}"
     case "$dir" in
         /*) ;;
@@ -379,22 +423,45 @@ main() {
         elif [ -n "$version" ] && [ "$version" != "$RELEASE" ]; then
             hand_over "$REPO/releases/download/v$version/install.sh" "release $version"
         fi
-        source="$NAME @ $REPO/releases/download/v$RELEASE/rack_dashboard-$RELEASE-py3-none-any.whl"
+        source="$NAME @ $REPO/releases/download/v$RELEASE/$NAME-$RELEASE-py3-none-any.whl"
     elif [ -z "$source" ]; then
         source="$NAME @ $REPO/archive/$ref.tar.gz"
     fi
 
     if [ "$remove" -eq 1 ]; then
-        scratch="$(mktemp)"
-        write_uninstaller "$scratch"
         code=0
-        sh "$scratch" "$dir" || code=$?
-        rm -f "$scratch"
+        if [ -n "$old" ] && [ -f "$old/uninstall.sh" ]; then
+            say "Removing the install from before the rename, in $old ..."
+            sh "$old/uninstall.sh" || code=$?
+        fi
+        if [ -z "$old" ] || [ -e "$dir" ] || [ -f "$unit" ] || [ -f "$plist" ]; then
+            scratch="$(mktemp)"
+            write_uninstaller "$scratch"
+            sh "$scratch" "$dir" || code=$?
+            rm -f "$scratch"
+        fi
         exit "$code"
     fi
 
+    if [ -n "$old" ]; then
+        if [ "$old" != "$dir" ] && [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
+            fail "Rack Dashboard (Rackside's name before 0.2.0) is installed in $old, and $dir is already in use, so it cannot be moved there. Remove one of the two first."
+        fi
+        say "Taking over the install from before the rename (Rack Dashboard, in $old) ..."
+        retire_old_install
+        if [ "$old" != "$dir" ]; then
+            rmdir "$dir" 2>/dev/null || true
+            mkdir -p "$(dirname "$dir")"
+            mv "$old" "$dir" || fail "could not move $old to $dir"
+        fi
+        # What only belonged to the old name. Everything else, settings and history first of all, stays.
+        rm -rf "$dir/tools/$OLD_NAME" "$dir/bin/$OLD_NAME" "$dir/bin/${OLD_NAME}w" "$dir/$OLD_MARKER"
+        [ ! -f "$dir/$OLD_NAME.log" ] || mv "$dir/$OLD_NAME.log" "$dir/$NAME.log"
+        : > "$dir/$MARKER"
+    fi
+
     if [ -n "$chosen" ] && [ -n "$existing" ] && [ "$existing" != "$dir" ] && [ -d "$existing" ]; then
-        fail "Rack Dashboard is already installed in $existing. Remove it first (sh \"$existing/uninstall.sh\"), or leave out --dir to update it."
+        fail "Rackside is already installed in $existing. Remove it first (sh \"$existing/uninstall.sh\"), or leave out --dir to update it."
     fi
     if [ -e "$dir" ] && [ ! -f "$dir/$MARKER" ]; then
         if [ ! -d "$dir" ] || [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
@@ -402,7 +469,7 @@ main() {
         fi
     fi
     mkdir -p "$dir" || fail "could not create $dir"
-    printf '%s\n' "Rack Dashboard is installed in this folder. Everything it uses is in here; uninstall.sh removes it." > "$dir/$MARKER"
+    printf '%s\n' "Rackside is installed in this folder. Everything it uses is in here; uninstall.sh removes it." > "$dir/$MARKER"
     write_uninstaller "$dir/uninstall.sh"
     chmod +x "$dir/uninstall.sh"
 
@@ -440,7 +507,7 @@ main() {
     log="$dir/$NAME.log"
     if [ ! -f "$settings" ]; then
         cat > "$settings" <<EOF
-# Settings for Rack Dashboard, one KEY=value per line. The readme lists them all.
+# Settings for Rackside, one KEY=value per line. The readme lists them all.
 # They take effect when the dashboard is next started.
 EOF
     fi
@@ -486,7 +553,7 @@ EOF
         sleep 1
     done
     say ""
-    say "Rack Dashboard is running: http://127.0.0.1:$listening_port"
+    say "Rackside is running: http://127.0.0.1:$listening_port"
     if grep -q '^DASH_HOST=0\.0\.0\.0' "$settings"; then
         if [ "$system" = "Darwin" ]; then
             address="$(ipconfig getifaddr "$(route -n get default 2>/dev/null | awk '/interface:/ {print $2}')" 2>/dev/null || true)"

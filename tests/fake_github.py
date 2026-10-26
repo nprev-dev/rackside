@@ -3,7 +3,7 @@
     python tests/fake_github.py PORT FOLDER VERSION
 
 FOLDER holds the release's files: install.sh, install.ps1 and the package. The installers are
-pointed at it with RACK_DASHBOARD_REPO=http://127.0.0.1:PORT. It answers:
+pointed at it with RACKSIDE_REPO=http://127.0.0.1:PORT. It answers:
 
     /releases/latest/download/NAME       redirect to the file of the latest release, as GitHub does
     /releases/download/vVERSION/NAME     the file

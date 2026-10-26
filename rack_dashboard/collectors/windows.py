@@ -109,7 +109,7 @@ def resolvers(local_address: Callable[[], str | None] | None = None) -> list[str
 
 # --- ping -----------------------------------------------------------------------
 
-PING_PAYLOAD = b"rack-dashboard--"
+PING_PAYLOAD = b"rackside--------"
 
 
 class IcmpHandle:

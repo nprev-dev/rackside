@@ -9,26 +9,26 @@ from rack_dashboard import paths
 
 def test_data_folder_on_linux():
     home = Path("/home/someone")
-    assert paths.data_dir("linux", {}, home) == home / ".local" / "share" / "rack-dashboard"
-    assert paths.data_dir("linux", {"XDG_DATA_HOME": "/srv/data"}, home) == Path("/srv/data/rack-dashboard")
+    assert paths.data_dir("linux", {}, home) == home / ".local" / "share" / "rackside"
+    assert paths.data_dir("linux", {"XDG_DATA_HOME": "/srv/data"}, home) == Path("/srv/data/rackside")
 
 
 def test_a_relative_xdg_folder_is_ignored():
     home = Path("/home/someone")
-    assert paths.data_dir("linux", {"XDG_DATA_HOME": "data"}, home) == home / ".local" / "share" / "rack-dashboard"
-    assert paths.data_dir("linux", {"XDG_DATA_HOME": ""}, home) == home / ".local" / "share" / "rack-dashboard"
+    assert paths.data_dir("linux", {"XDG_DATA_HOME": "data"}, home) == home / ".local" / "share" / "rackside"
+    assert paths.data_dir("linux", {"XDG_DATA_HOME": ""}, home) == home / ".local" / "share" / "rackside"
 
 
 def test_data_folder_on_mac():
     home = Path("/Users/someone")
     # The Linux setting means nothing there, even if it happens to be set.
-    assert paths.data_dir("darwin", {"XDG_DATA_HOME": "/srv/data"}, home) == home / "Library" / "Application Support" / "rack-dashboard"
+    assert paths.data_dir("darwin", {"XDG_DATA_HOME": "/srv/data"}, home) == home / "Library" / "Application Support" / "rackside"
 
 
 def test_data_folder_on_windows():
     home = Path("C:/Users/someone")
-    assert paths.data_dir("win32", {"LOCALAPPDATA": "D:/Local"}, home) == Path("D:/Local/rack-dashboard")
-    assert paths.data_dir("win32", {}, home) == home / "AppData" / "Local" / "rack-dashboard"
+    assert paths.data_dir("win32", {"LOCALAPPDATA": "D:/Local"}, home) == Path("D:/Local/rackside")
+    assert paths.data_dir("win32", {}, home) == home / "AppData" / "Local" / "rackside"
 
 
 def test_an_explicit_state_file_wins(tmp_path):
@@ -63,23 +63,23 @@ def test_the_tests_do_not_touch_the_real_state_file():
     # conftest.py points the app at a scratch file; if this fails, test runs write into real data.
     from rack_dashboard import app
 
-    assert "rack-dashboard-tests-" in str(app.state.path)
+    assert "rackside-tests-" in str(app.state.path)
     assert app.state.path != paths.PACKAGE.parent / "data" / "state.json"
 
 
 def test_settings_folder_on_each_system():
-    assert paths.config_dir("linux", {}, Path("/home/someone")) == Path("/home/someone/.config/rack-dashboard")
-    assert paths.config_dir("linux", {"XDG_CONFIG_HOME": "/etc/xdg-user"}, Path("/home/someone")) == Path("/etc/xdg-user/rack-dashboard")
-    assert paths.config_dir("linux", {"XDG_CONFIG_HOME": "relative"}, Path("/home/someone")) == Path("/home/someone/.config/rack-dashboard")
-    assert paths.config_dir("darwin", {"XDG_CONFIG_HOME": "/etc/xdg-user"}, Path("/Users/someone")) == Path("/Users/someone/.config/rack-dashboard")
-    assert paths.config_dir("win32", {"APPDATA": "C:/Users/someone/AppData/Roaming"}, Path("C:/Users/someone")) == Path("C:/Users/someone/AppData/Roaming/rack-dashboard")
-    assert paths.config_dir("win32", {}, Path("C:/Users/someone")) == Path("C:/Users/someone/AppData/Roaming/rack-dashboard")
+    assert paths.config_dir("linux", {}, Path("/home/someone")) == Path("/home/someone/.config/rackside")
+    assert paths.config_dir("linux", {"XDG_CONFIG_HOME": "/etc/xdg-user"}, Path("/home/someone")) == Path("/etc/xdg-user/rackside")
+    assert paths.config_dir("linux", {"XDG_CONFIG_HOME": "relative"}, Path("/home/someone")) == Path("/home/someone/.config/rackside")
+    assert paths.config_dir("darwin", {"XDG_CONFIG_HOME": "/etc/xdg-user"}, Path("/Users/someone")) == Path("/Users/someone/.config/rackside")
+    assert paths.config_dir("win32", {"APPDATA": "C:/Users/someone/AppData/Roaming"}, Path("C:/Users/someone")) == Path("C:/Users/someone/AppData/Roaming/rackside")
+    assert paths.config_dir("win32", {}, Path("C:/Users/someone")) == Path("C:/Users/someone/AppData/Roaming/rackside")
 
 
 def test_settings_file_is_read(tmp_path):
     file = tmp_path / "env"
     file.write_text(
-        "# Settings for Rack Dashboard\n"
+        "# Settings for Rackside\n"
         "\n"
         "DASH_HOST=0.0.0.0\n"
         "  DASH_PORT = 9000  \n"
@@ -114,10 +114,10 @@ def test_settings_file_missing_or_unreadable(tmp_path):
 
 def installed(tmp_path: Path) -> tuple[Path, Path]:
     """A folder laid out as the installers leave it; returns it and where its Python sits."""
-    folder = tmp_path / "rack-dashboard"
-    prefix = folder / "tools" / "rack-dashboard"
+    folder = tmp_path / "rackside"
+    prefix = folder / "tools" / "rackside"
     prefix.mkdir(parents=True)
-    (folder / paths.MARKER).write_text("Rack Dashboard is installed in this folder.\n")
+    (folder / paths.MARKER).write_text("Rackside is installed in this folder.\n")
     return folder, prefix
 
 
@@ -129,7 +129,7 @@ def test_an_installed_copy_knows_its_folder(tmp_path):
 
 def test_a_copy_installed_another_way_has_no_folder_of_its_own(tmp_path):
     # Same shape, but nobody left the marker: this is somebody's own Python environment.
-    prefix = tmp_path / "somewhere" / "tools" / "rack-dashboard"
+    prefix = tmp_path / "somewhere" / "tools" / "rackside"
     prefix.mkdir(parents=True)
 
     assert paths.home({}, prefix) is None
@@ -153,7 +153,7 @@ def test_an_installed_copy_keeps_everything_in_its_folder(tmp_path):
 
     assert paths.settings_file(environ, prefix) == folder / "env"
     assert paths.state_file(environ, tmp_path / "site-packages" / "rack_dashboard", prefix) == folder / "state.json"
-    assert paths.log_file(environ, prefix) == folder / "rack-dashboard.log"
+    assert paths.log_file(environ, prefix) == folder / "rackside.log"
 
 
 def test_an_explicit_state_file_wins_over_the_folder_too(tmp_path):
@@ -167,4 +167,4 @@ def test_without_a_folder_settings_and_log_go_where_the_system_keeps_such_things
     environ = {"XDG_CONFIG_HOME": "/srv/config", "XDG_DATA_HOME": "/srv/data", "APPDATA": "C:/Roaming", "LOCALAPPDATA": "C:/Local"}
 
     assert paths.settings_file(environ, prefix) == paths.config_dir(environ=environ) / "env"
-    assert paths.log_file(environ, prefix) == paths.data_dir(environ=environ) / "rack-dashboard.log"
+    assert paths.log_file(environ, prefix) == paths.data_dir(environ=environ) / "rackside.log"

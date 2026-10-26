@@ -22,7 +22,7 @@ from pathlib import Path
 
 DEPTH = 5
 # Names an install could leave behind: its own, and those of uv and the Python uv fetches.
-OURS = ("rack-dashboard", "rack_dashboard", "astral", "cpython-")
+OURS = ("rackside", "rack-dashboard", "rack_dashboard", "astral", "cpython-")
 STARTUP_FILES = (".profile", ".bash_profile", ".bash_login", ".bashrc", ".zshrc", ".zshenv", ".zprofile", ".config/fish/config.fish")
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 

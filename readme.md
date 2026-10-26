@@ -1,4 +1,4 @@
-# Rack Dashboard
+# Rackside
 
 A one-page status screen for a home server, built to sit full screen on a small monitor in the rack. It shows the Docker containers, network, power and hardware of the machine it runs on and refreshes every second.
 No this dashboard doesn't fix anything. But clueless relatives might call you a cybercriminal from now on.
@@ -53,28 +53,28 @@ Run this on the machine you want to watch, as the user who should run the dashbo
 Linux and macOS:
 
 ```bash
-curl -fsSL https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/nprev-dev/rackside/releases/latest/download/install.sh | sh
 ```
 
 Windows, in PowerShell or the command prompt:
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/nprev-dev/rackside/releases/latest/download/install.ps1 | iex"
 ```
 
 Then open <http://127.0.0.1:8787> on that machine.
 
 ### What it puts on your machine
 
-Everything goes into one folder: `rack-dashboard` in your home folder (`C:\Users\you\rack-dashboard` on Windows).
+Everything goes into one folder: `rackside` in your home folder (`C:\Users\you\rackside` on Windows).
 
 ```
-rack-dashboard/
+rackside/
   uninstall.sh          removes all of it again (uninstall.cmd on Windows)
   env                   your settings
   state.json            the totals and history it has saved
-  rack-dashboard.log    what it printed
-  bin/                  the rack-dashboard command, and the tool that installed it
+  rackside.log    what it printed
+  bin/                  the rackside command, and the tool that installed it
   python/               its own Python
   tools/                the program itself
 ```
@@ -83,8 +83,8 @@ That is 125 to 175 MB depending on the system, most of it Python. The dashboard 
 
 One thing has to live outside the folder, because every system keeps it in a place of its own: the entry that makes the dashboard start by itself.
 
-- **Linux** (with systemd): a service for your user, `~/.config/systemd/user/rack-dashboard.service`. It starts when the machine boots and comes back if it crashes. For that the script switches on "lingering" for your user (`loginctl enable-linger`), which is what lets a user's services run with nobody logged in.
-- **macOS**: a launch agent, `~/Library/LaunchAgents/io.github.nprev-dev.rack-dashboard.plist`. It starts when you log in and comes back if it crashes.
+- **Linux** (with systemd): a service for your user, `~/.config/systemd/user/rackside.service`. It starts when the machine boots and comes back if it crashes. For that the script switches on "lingering" for your user (`loginctl enable-linger`), which is what lets a user's services run with nobody logged in.
+- **macOS**: a launch agent, `~/Library/LaunchAgents/io.github.nprev-dev.rackside.plist`. It starts when you log in and comes back if it crashes.
 - **Windows**: an entry among your start-up programs (Task Manager lists it under Startup apps). It starts when you sign in and runs without a window.
 
 On macOS and Windows the dashboard starts at login, not at boot. A machine that should come back on its own after a power cut needs automatic login switched on.
@@ -96,7 +96,7 @@ The folder is put together by [uv](https://docs.astral.sh/uv/). The script fetch
 Linux and macOS:
 
 ```bash
-sh ~/rack-dashboard/uninstall.sh
+sh ~/rackside/uninstall.sh
 ```
 
 Windows: double-click `uninstall.cmd` in the folder.
@@ -112,11 +112,11 @@ Two things belong to the system and are not the dashboard's to delete. On Linux,
 By default only the machine itself can open the page. To let the rest of your network see it, install with the `lan` option:
 
 ```bash
-curl -fsSL https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.sh | sh -s -- --lan
+curl -fsSL https://github.com/nprev-dev/rackside/releases/latest/download/install.sh | sh -s -- --lan
 ```
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://github.com/nprev-dev/Docker-UI-app/releases/latest/download/install.ps1))) -Lan"
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://github.com/nprev-dev/rackside/releases/latest/download/install.ps1))) -Lan"
 ```
 
 There is no login. Anyone who can reach the machine then sees your open ports, addresses and container names, so use this only on a network you trust. On Windows the firewall will ask whether to allow it the first time; until you say yes, other machines get no answer.
@@ -126,12 +126,12 @@ There is no login. Anyone who can reach the machine then sees your open ports, a
 Options go where `--lan` and `-Lan` are in the commands above.
 
 - `--port N` (Windows: `-Port N`) listens on another port.
-- `--dir PATH` (Windows: `-Dir PATH`) uses another folder than `rack-dashboard` in your home folder.
+- `--dir PATH` (Windows: `-Dir PATH`) uses another folder than `rackside` in your home folder.
 - `--no-service` (Windows: `-NoStartup`) installs it and leaves starting it to you.
-- `--version 0.1.0` (Windows: `-Version 0.1.0`) installs that release instead of the latest one. The [releases page](https://github.com/nprev-dev/Docker-UI-app/releases) lists them all, with what changed in each.
+- `--version 0.1.0` (Windows: `-Version 0.1.0`) installs that release instead of the latest one. The [releases page](https://github.com/nprev-dev/rackside/releases) lists them all, with what changed in each.
 - `--ref main` (Windows: `-Ref main`) installs the newest code, before it has been released. It may be unfinished.
 
-Running the install command again updates to the latest release. It finds the folder by itself and keeps your settings and history. The page shows which version it is in the top right corner, beside the connection status.
+Running the install command again updates to the latest release. It finds the folder by itself and keeps your settings and history. An install from before 0.2.0, when Rackside was still called Rack Dashboard, is taken over the same way: the old start-up entry goes, and the folder moves from `rack-dashboard` to `rackside` with your settings and history in it. The page shows which version it is in the top right corner, beside the connection status.
 
 ### On a monitor in the rack
 
@@ -174,11 +174,11 @@ Settings live in one file, `env` in the dashboard's folder, with one `KEY=value`
 
 | | Restart |
 | --- | --- |
-| Linux | `systemctl --user restart rack-dashboard` |
-| macOS | `launchctl kickstart -k gui/$(id -u)/io.github.nprev-dev.rack-dashboard` |
+| Linux | `systemctl --user restart rackside` |
+| macOS | `launchctl kickstart -k gui/$(id -u)/io.github.nprev-dev.rackside` |
 | Windows | run the install command again |
 
-The same names work as environment variables, and one set that way wins over the file. Started by hand, that looks like `DASH_KWH_PRICE=0.14 ~/rack-dashboard/bin/rack-dashboard`. The address and port can also be given as `--host` and `--port`.
+The same names work as environment variables, and one set that way wins over the file. Started by hand, that looks like `DASH_KWH_PRICE=0.14 ~/rackside/bin/rackside`. The address and port can also be given as `--host` and `--port`.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -215,7 +215,7 @@ Everything on the page is read from the machine itself, except for the checks be
 
 The state file, `state.json` in the dashboard's folder, holds the daily totals, speed test history, the event log and your public IP address. It never leaves the machine.
 
-What the dashboard prints goes to `rack-dashboard.log` in the same folder. The file is kept under about 1 MB; when it gets there, the older half is dropped.
+What the dashboard prints goes to `rackside.log` in the same folder. The file is kept under about 1 MB; when it gets there, the older half is dropped.
 
 ## About the power figures
 
@@ -258,14 +258,14 @@ CHANGELOG.md               What changed in each release.
 ## Working on it
 
 ```bash
-git clone https://github.com/nprev-dev/Docker-UI-app.git
-cd Docker-UI-app
+git clone https://github.com/nprev-dev/rackside.git
+cd rackside
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ./run.sh
 ```
 
-Run from a copy of the source like this, the dashboard keeps its state in a `data/` folder beside the code if there is one, which is why `data/` is in `.gitignore`. A copy installed with `pip` has no folder of its own; it keeps its settings and state where the system keeps such things (on Linux, `~/.config/rack-dashboard` and `~/.local/share/rack-dashboard`).
+Run from a copy of the source like this, the dashboard keeps its state in a `data/` folder beside the code if there is one, which is why `data/` is in `.gitignore`. A copy installed with `pip` has no folder of its own; it keeps its settings and state where the system keeps such things (on Linux, `~/.config/rackside` and `~/.local/share/rackside`).
 
 The tests:
 
