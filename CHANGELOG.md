@@ -2,6 +2,11 @@
 
 What changed in each release. The section for a version becomes the notes of that release on GitHub.
 
+## Unreleased
+
+- `tools/demo.py` runs Rackside on made-up data, to try it or show it without your own machine's data.
+- New pictures in the readme, including the centrepiece in motion. `tools/record.py` makes them.
+
 ## 0.2.0
 
 Rack Dashboard is now called Rackside.
