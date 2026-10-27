@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "psutil>=5.9"]
+dev = ["pytest>=8", "psutil>=5.9", "pillow>=10"]
 
 [project.scripts]
 rackside = "rack_dashboard.cli:main"

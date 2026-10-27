@@ -3,21 +3,21 @@
 A one-page status screen for a home server, built to sit full screen on a small monitor in the rack. It shows the Docker containers, network, power and hardware of the machine it runs on and refreshes every second.
 No this dashboard doesn't fix anything. But clueless relatives might call you a cybercriminal from now on.
 
-![The dashboard at 1920x1080](docs/overview.png)
+![The centrepiece: the server, a line to everything it talks to, dashes running the way the data goes](docs/centrepiece.webp)
 
 The backend is Python (Starlette) and reads everything from the local machine. The page is plain HTML, CSS and JavaScript with no build step. It runs on Linux, Windows and macOS. Linux is where it can read the most; [what the other two leave empty](#linux-windows-and-macos) is listed further down.
 
-The screenshots here were taken with made-up containers and addresses.
+The pictures here show made-up containers and addresses, from `tools/demo.py`.
 
 ## What is on the screen
+
+![The whole page at 1920x1080](docs/overview.png)
 
 The top row holds the numbers worth reading from across the room: host and uptime, CPU load and temperature, power draw, network in and out, containers running, internet latency and the clock.
 
 On the left, the server is drawn as a globe with a line to everything it is talking to. Containers sit on one side and network peers on the other. A thicker, brighter bundle of lines means more traffic (log scale, 1 Kbps to 1 Gbps), and the dashes travel the way most of the data is going. Things on the inner dotted orbit are on the local network, things on the outer one are out on the internet. The five busiest or most troubled things on each side get a label, and a corner readout gives the totals.
 
 The field of faint loops behind all of this carries no data of its own. It only follows CPU load: the harder the machine works, the brighter it gets and the faster it turns.
-
-![The centrepiece](docs/centrepiece.png)
 
 The rest of the page is detail:
 
@@ -246,6 +246,8 @@ rack_dashboard/            Starlette app. Three collectors (containers, network,
 rack_dashboard/frontend/   The page: ES modules, canvas for the graphs and the centrepiece,
                            no framework.
 tests/                     pytest suite, plus checks of the animation logic.
+tools/                     demo.py runs the dashboard on made-up data; record.py makes the
+                           pictures in docs/ from it.
 install.sh, install.ps1    The installers described above. Each release carries copies that know
                            which release they belong to.
 CHANGELOG.md               What changed in each release.
@@ -274,6 +276,20 @@ The tests:
 ```
 
 The checks of the animation logic are written in JavaScript and run under `gjs`, which GNOME desktops have installed, or under Node.js. Without either that one test is skipped.
+
+### With made-up data
+
+To see the dashboard without your own machine's data, or to show it to someone:
+
+```bash
+.venv/bin/python tools/demo.py
+```
+
+It serves the page on <http://127.0.0.1:8799> with a made-up server, `--scenario alerts` has things going wrong, and nothing is sent onto the network. The pictures in `docs/` come from it: after a change to the page, this takes them again (it needs Firefox, and runs one of its own without a window):
+
+```bash
+.venv/bin/python tools/record.py
+```
 
 ### Making a release
 

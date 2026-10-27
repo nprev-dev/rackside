@@ -117,6 +117,33 @@ async def collect(name: str, collector, offline: dict) -> dict:
         return {**offline, "ok": False, "error": f"{name} collector failed: {exc}"}
 
 
+def assemble(container_data: dict, network_data: dict, hardware_data: dict, observe: bool = True) -> dict:
+    """One snapshot, as the page receives it, from what the three collectors returned. With
+    `observe`, what changed since the last one goes into the event log."""
+    label_ports(network_data, container_data)
+    snapshot = {
+        "ts": time.time(),
+        "host": socket.gethostname(),
+        # Which system this is, and what it gives no way to read, so the page can say so.
+        "system": {"name": system.name(), "missing": system.missing()},
+        "boot": BOOT_TIME,
+        "interval": INTERVAL,
+        "fps": FPS,
+        "version": __version__,
+        "containers": container_data,
+        "network": network_data,
+        "hardware": hardware_data,
+    }
+    if observe:
+        try:
+            events.observe(snapshot)
+        except Exception:
+            # The log is a convenience; a bug in it must not cost the live numbers.
+            pass
+    snapshot["events"] = events.recent()
+    return snapshot
+
+
 async def collect_loop() -> None:
     while True:
         started = time.monotonic()
@@ -125,27 +152,7 @@ async def collect_loop() -> None:
             collect("network", network, {}),
             collect("hardware", hardware, {}),
         )
-        label_ports(network_data, container_data)
-        snapshot = {
-            "ts": time.time(),
-            "host": socket.gethostname(),
-            # Which system this is, and what it gives no way to read, so the page can say so.
-            "system": {"name": system.name(), "missing": system.missing()},
-            "boot": BOOT_TIME,
-            "interval": INTERVAL,
-            "fps": FPS,
-            "version": __version__,
-            "containers": container_data,
-            "network": network_data,
-            "hardware": hardware_data,
-        }
-        try:
-            events.observe(snapshot)
-        except Exception:
-            # The log is a convenience; a bug in it must not cost the live numbers.
-            pass
-        snapshot["events"] = events.recent()
-        await hub.publish(snapshot)
+        await hub.publish(assemble(container_data, network_data, hardware_data))
         await asyncio.sleep(max(0.0, INTERVAL - (time.monotonic() - started)))
 
 
