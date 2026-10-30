@@ -229,7 +229,7 @@ const card = { history: [], step: 5 };
 let cardRows = [];
 let cardsKey = null;
 
-// "NVIDIA GeForce RTX 3060" -> "RTX 3060": the maker is no news on a line this short.
+// "NVIDIA GeForce RTX 4070" -> "RTX 4070": the maker is no news on a line this short.
 const shortCard = (name) => name.replace(/^NVIDIA\s+/i, "").replace(/^GeForce\s+/i, "");
 const share = (value) => (value == null ? "-" : `${value.toFixed(0)}%`);
 const held = (used, total) => (used == null ? "-" : total ? `${formatBytes(used)}/${formatBytes(total)}` : formatBytes(used));

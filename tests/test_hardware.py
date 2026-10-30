@@ -37,7 +37,7 @@ def write(root, files):
 @pytest.mark.parametrize(
     "raw, clean",
     [
-        ("AMD Ryzen 7 5800X 8-Core Processor", "AMD Ryzen 7 5800X"),
+        ("AMD Ryzen 7 7700 8-Core Processor", "AMD Ryzen 7 7700"),
         ("Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz", "Intel Core i7-9700K"),
         ("AMD EPYC 7302P 16-Core Processor", "AMD EPYC 7302P"),
         ("Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz", "Intel Xeon E5-2680 v4"),
@@ -49,11 +49,11 @@ def test_cpu_names_lose_their_marketing_padding(raw, clean):
 
 
 def test_cpu_is_read_from_cpuinfo(tmp_path):
-    block = "processor\t: {n}\nmodel name\t: AMD Ryzen 7 5800X 8-Core Processor\ncpu cores\t: 8\n\n"
+    block = "processor\t: {n}\nmodel name\t: AMD Ryzen 7 7700 8-Core Processor\ncpu cores\t: 8\n\n"
     cpuinfo = tmp_path / "cpuinfo"
     cpuinfo.write_text("".join(block.format(n=n) for n in range(16)))
 
-    assert mod.read_cpu(cpuinfo) == {"model": "AMD Ryzen 7 5800X", "cores": 8, "threads": 16}
+    assert mod.read_cpu(cpuinfo) == {"model": "AMD Ryzen 7 7700", "cores": 8, "threads": 16}
 
 
 def test_unreadable_cpuinfo(tmp_path):
@@ -78,9 +78,9 @@ def test_installed_ram_falls_back_to_the_kernels_total(tmp_path):
 
 def test_disks_are_listed_with_their_kind(tmp_path):
     write(tmp_path, {
-        "nvme0n1/device/model": "Samsung SSD 970 EVO Plus 1TB  \n", "nvme0n1/size": "1953525168\n",
+        "nvme0n1/device/model": "WD_BLACK SN770 1TB  \n", "nvme0n1/size": "1953525168\n",
         "nvme0n1/queue/rotational": "0\n", "nvme0n1/removable": "0\n",
-        "sdb/device/model": "ST2000DM008-2FR1\n", "sdb/size": "3907029168\n", "sdb/queue/rotational": "1\n", "sdb/removable": "0\n",
+        "sdb/device/model": "ST2000VN004-2E4164\n", "sdb/size": "3907029168\n", "sdb/queue/rotational": "1\n", "sdb/removable": "0\n",
         "sda/device/model": "CT500MX500SSD1\n", "sda/size": "976773168\n", "sda/queue/rotational": "0\n", "sda/removable": "0\n",
         # None of these are fitted drives: a loop device, a USB stick, an empty card reader.
         "loop0/size": "1000\n",
@@ -89,13 +89,13 @@ def test_disks_are_listed_with_their_kind(tmp_path):
     })
 
     assert mod.list_disks(tmp_path) == [
-        {"name": "nvme0n1", "bytes": 1953525168 * 512, "model": "Samsung SSD 970 EVO Plus 1TB", "kind": "nvme"},
+        {"name": "nvme0n1", "bytes": 1953525168 * 512, "model": "WD_BLACK SN770 1TB", "kind": "nvme"},
         {"name": "sda", "bytes": 976773168 * 512, "model": "CT500MX500SSD1", "kind": "ssd"},
-        {"name": "sdb", "bytes": 3907029168 * 512, "model": "ST2000DM008-2FR1", "kind": "hdd"},
+        {"name": "sdb", "bytes": 3907029168 * 512, "model": "ST2000VN004-2E4164", "kind": "hdd"},
     ]
 
 
-@pytest.mark.parametrize("raw, expected", [("02/25/2022", "2022-02-25"), ("unknown", "unknown"), (None, None), ("", "")])
+@pytest.mark.parametrize("raw, expected", [("03/14/2025", "2025-03-14"), ("unknown", "unknown"), (None, None), ("", "")])
 def test_bios_date(raw, expected):
     assert mod.bios_date(raw) == expected
 
@@ -227,10 +227,10 @@ def test_unusable_load_figures_give_no_estimate(tmp_path, text):
 
 
 def test_gpu_readings_are_parsed():
-    gpus = mod.parse_gpus("NVIDIA GeForce RTX 3060, 12288, 911, 14, 46, 0, 42.08, 170.00\n")
+    gpus = mod.parse_gpus("NVIDIA GeForce RTX 4070, 12288, 911, 14, 46, 0, 42.08, 170.00\n")
 
     assert gpus == [{
-        "name": "NVIDIA GeForce RTX 3060", "mem_total": 12288 * 1024**2, "mem_used": 911 * 1024**2,
+        "name": "NVIDIA GeForce RTX 4070", "mem_total": 12288 * 1024**2, "mem_used": 911 * 1024**2,
         "load": 14.0, "temp": 46.0, "fan": 0.0, "watts": 42.08, "limit_watts": 170.0,
     }]
 
@@ -300,7 +300,7 @@ def test_no_sensors_at_all(tmp_path):
 
 def test_one_temperature_per_part_in_a_fixed_order(tmp_path):
     chips = mod.scan_hwmon(sensor_tree(tmp_path, board_chip=True))
-    gpus = mod.parse_gpus("NVIDIA GeForce RTX 3060, 12288, 911, 14, 46, 0, 42.08, 170.00\n")
+    gpus = mod.parse_gpus("NVIDIA GeForce RTX 4070, 12288, 911, 14, 46, 0, 42.08, 170.00\n")
 
     assert mod.pick_temps(chips, gpus) == [
         {"name": "cpu", "c": 39.5, "warn": 80.0, "crit": 90.0},
@@ -332,7 +332,7 @@ def test_several_graphics_cards_are_numbered():
 
 def test_fans_skip_empty_headers_and_keep_labels(tmp_path):
     chips = mod.scan_hwmon(sensor_tree(tmp_path, board_chip=True))
-    gpus = mod.parse_gpus("NVIDIA GeForce RTX 3060, 12288, 911, 14, 46, 37, 42.08, 170.00\n")
+    gpus = mod.parse_gpus("NVIDIA GeForce RTX 4070, 12288, 911, 14, 46, 37, 42.08, 170.00\n")
 
     assert mod.pick_fans(chips, gpus) == [
         {"name": "gpu", "percent": 37.0},
@@ -548,11 +548,11 @@ def test_energy_is_saved_at_most_once_a_minute(state, tmp_path):
 # --- the collector ------------------------------------------------------------
 
 INVENTORY = {
-    "board": "TUF GAMING X570-PLUS (WI-FI)", "vendor": "ASUSTeK COMPUTER INC.", "bios": "4204", "bios_date": "2022-02-25",
-    "cpu": {"model": "AMD Ryzen 7 5800X", "cores": 8, "threads": 16}, "ram_bytes": 32 * GIB,
+    "board": "B650M Pro RS", "vendor": "ASRock", "bios": "3.20", "bios_date": "2025-03-14",
+    "cpu": {"model": "AMD Ryzen 7 7700", "cores": 8, "threads": 16}, "ram_bytes": 32 * GIB,
     "disks": [{"name": "nvme0n1", "bytes": 10**12, "model": "Samsung", "kind": "nvme"}, {"name": "sdb", "bytes": 2 * 10**12, "model": "Seagate", "kind": "hdd"}],
 }
-GPU_LINE = "NVIDIA GeForce RTX 3060, 12288, 911, 14, 46, 0, 40.0, 170.00\n"
+GPU_LINE = "NVIDIA GeForce RTX 4070, 12288, 911, 14, 46, 0, 40.0, 170.00\n"
 
 
 def app(pid, kind, name, memory):
@@ -804,7 +804,7 @@ def test_card_section(rig):
     result = rig.build().collect()
 
     assert result["gpu"] == {
-        "cards": [{"name": "NVIDIA GeForce RTX 3060", "load": 14.0, "mem_used": 911 * MIB, "mem_total": 12288 * MIB}],
+        "cards": [{"name": "NVIDIA GeForce RTX 4070", "load": 14.0, "mem_used": 911 * MIB, "mem_total": 12288 * MIB}],
         "history": {"step": mod.HISTORY_STEP, "load": []},
         "apps": {"count": 5, "mem": 499 * MIB},
         "error": None,

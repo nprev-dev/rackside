@@ -14,7 +14,7 @@ GIB = 1024**3
 
 
 class Card:
-    def __init__(self, name="NVIDIA GeForce RTX 3060", total=12 * GIB, used=GIB, load=14, temp=46, fan=30, milliwatts=42080, limit=170000,
+    def __init__(self, name="NVIDIA GeForce RTX 4070", total=12 * GIB, used=GIB, load=14, temp=46, fan=30, milliwatts=42080, limit=170000,
                  compute=(), graphics=()):
         self.__dict__.update(locals())
 
@@ -141,7 +141,7 @@ def test_readings_have_the_shape_nvidia_smi_gives():
     library = FakeLibrary([Card()])
 
     assert Nvml(lambda: library).readings() == [{
-        "name": "NVIDIA GeForce RTX 3060", "mem_total": 12 * GIB, "mem_used": GIB, "load": 14.0, "temp": 46.0, "fan": 30.0, "watts": 42.08, "limit_watts": 170.0,
+        "name": "NVIDIA GeForce RTX 4070", "mem_total": 12 * GIB, "mem_used": GIB, "load": 14.0, "temp": 46.0, "fan": 30.0, "watts": 42.08, "limit_watts": 170.0,
     }]
 
 
@@ -199,7 +199,7 @@ def test_a_card_that_stops_answering_reopens_the_library_next_time():
     assert library.shutdowns == 1
 
     del library.nvmlDeviceGetName
-    assert reader.readings()[0]["name"] == "NVIDIA GeForce RTX 3060"
+    assert reader.readings()[0]["name"] == "NVIDIA GeForce RTX 4070"
 
 
 def test_programs_are_counted_once_and_their_memory_added_up():

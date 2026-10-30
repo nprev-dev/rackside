@@ -220,7 +220,7 @@ def test_ups_power_events(log):
     ]
 
 
-CARD = {"name": "NVIDIA GeForce RTX 3060", "load": 14.0, "mem_used": 1, "mem_total": 2}
+CARD = {"name": "NVIDIA GeForce RTX 4070", "load": 14.0, "mem_used": 1, "mem_total": 2}
 
 
 def test_graphics_card_dropping_out_and_coming_back(log):

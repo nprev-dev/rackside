@@ -67,7 +67,7 @@ def _natural(path: Path) -> list:
 
 
 def clean_cpu(model: str) -> str:
-    """'AMD Ryzen 7 5800X 8-Core Processor' -> 'AMD Ryzen 7 5800X'."""
+    """'AMD Ryzen 7 7700 8-Core Processor' -> 'AMD Ryzen 7 7700'."""
     model = re.sub(r"\((R|TM|tm)\)", "", model)
     model = re.sub(r"\s+\d+-Core Processor$|\s+@.*$|\s+Processor$", "", model)
     model = re.sub(r"\bCPU\b", "", model)
@@ -119,7 +119,7 @@ def list_disks(root: Path = Path("/sys/block")) -> list[dict]:
 
 
 def bios_date(american: str | None) -> str | None:
-    """'02/25/2022' -> '2022-02-25'."""
+    """'03/14/2025' -> '2025-03-14'."""
     match = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", american or "")
     return f"{match.group(3)}-{match.group(1)}-{match.group(2)}" if match else american
 
